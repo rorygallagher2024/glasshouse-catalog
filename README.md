@@ -6,9 +6,11 @@ Third-party add-ons in this catalog are created and maintained by their authors,
 
 ## Submitting your repository
 
-Contributors keep their add-on in their own GitHub repository with tagged releases and register it here via a pull request adding an entry to `registry.json`.
+Contributors keep their add-on in their own GitHub repository with tagged releases and register it here via a pull request adding an entry to `registry.json`. You can test an unlisted repository on your TV first using **Install from a GitHub link or .zip URL** under **Community screen savers** or **Home -> Custom -> Community launchers**.
 
 ### Screen saver requirements
+
+See [Writing a screen saver](https://rorygallagher2024.github.io/glasshouse/development/WRITING-SCREENSAVERS/) and [Screen saver design principles](https://rorygallagher2024.github.io/glasshouse/development/SCREENSAVER-DESIGN/) for the full guide.
 
 - Keep all files at the root of the archive (or inside one top-level folder) with a valid `saver.json` (`"manifest": 1`, `"name"`, `"description"`, `"version"`, `"author"`, `"license"`).
 - QML screen savers must use `QtQuick 2.4` and `Eos.Window 0.1` so they run cleanly on webOS 4 through 10 (max 200 files, 5 MB total, no symlinks).
@@ -16,12 +18,14 @@ Contributors keep their add-on in their own GitHub repository with tagged releas
 
 ### Custom launcher requirements
 
+See [Writing a launcher](https://rorygallagher2024.github.io/glasshouse/development/WRITING-LAUNCHERS/) for the `window.Glasshouse` API and webOS compatibility notes.
+
 - Package your web app as a `.zip` (with `index.html` at root or inside one wrapper directory; max 5,000 files, 50 MB download / 100 MB unpacked) or an `.ipk` containing a web app.
 - Pure HTML/JS/CSS only; avoid native services or binaries.
 
 ### Entry format in `registry.json`
 
-Add an object to `"items"`:
+Compute the SHA-256 checksum of your release archive (`shasum -a 256 <archive>` or `sha256sum <archive>`), then add an object to `"items"`:
 
 ```json
 {
@@ -40,4 +44,4 @@ Add an object to `"items"`:
 }
 ```
 
-Open a pull request against `main`—CI checks the schema, URLs, and checksum before merge, and rebuilds `catalog.json` automatically on GitHub Pages after merge.
+Open a pull request against `main`. CI checks the schema, URLs, and checksum before merge, and rebuilds `catalog.json` automatically on GitHub Pages after merge.
