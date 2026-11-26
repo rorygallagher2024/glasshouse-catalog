@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "baseUrl": "https://rorygallagher2024.github.io/glasshouse-catalog",
+  "repoUrl": "https://github.com/rorygallagher2024/glasshouse-catalog",
+  "items": [
+    {
+      "kind": "screensaver",
+      "id": "pigs",
+      "path": "packages/screensavers/pigs"
+    },
+    {
+      "kind": "screensaver",
+      "id": "music-highway",
+      "path": "packages/screensavers/music-highway"
+    }
+  ]
+}
