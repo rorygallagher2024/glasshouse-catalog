@@ -152,6 +152,42 @@ def validate_local_saver(pkg_dir: Path, entry_id: str) -> tuple[dict, list[tuple
     return meta, files
 
 
+def validate_local_nosignal(pkg_dir: Path, entry_id: str) -> tuple[dict, list[tuple[Path, str]]]:
+    manifest_file = pkg_dir / 'nosignal.json'
+    if not manifest_file.is_file():
+        fail(f'{pkg_dir}: missing nosignal.json')
+    m = json.loads(manifest_file.read_text(encoding='utf-8'))
+    if not isinstance(m, dict) or m.get('manifest') != 1:
+        fail(f'{manifest_file}: manifest must be 1')
+    name = manifest_text(m.get('name'))
+    desc = manifest_text(m.get('description'))
+    version = m.get('version')
+    author = m.get('author')
+    license_id = m.get('license')
+    if not name or not desc or not isinstance(version, str) or not version.strip():
+        fail(f'{manifest_file}: missing name, description, or version')
+    if not isinstance(author, str) or not author.strip():
+        fail(f'{manifest_file}: author is required for community No Signal screens')
+    if not isinstance(license_id, str) or not license_id.strip():
+        fail(f'{manifest_file}: license is required for community No Signal screens')
+    main_file = m.get('main', 'main.qml')
+    if not isinstance(main_file, str) or not main_file.endswith('.qml') or '/' in main_file or '\\' in main_file or not (pkg_dir / main_file).is_file():
+        fail(f'{manifest_file}: missing or invalid main .qml file {main_file!r}')
+    files = collect_files(pkg_dir, MAX_SAVER_FILES, MAX_SAVER_BYTES)
+    meta = {
+        'id': entry_id,
+        'kind': 'nosignal',
+        'name': name,
+        'description': desc,
+        'author': author.strip(),
+        'license': license_id.strip(),
+        'version': version.strip(),
+    }
+    if isinstance(m.get('requires'), dict):
+        meta['requires'] = m['requires']
+    return meta, files
+
+
 def validate_local_launcher(pkg_dir: Path, entry_id: str) -> tuple[dict, list[tuple[Path, str]]]:
     manifest_file = pkg_dir / 'launcher.json'
     m = {}
@@ -209,7 +245,7 @@ def main() -> None:
             fail('each item must be an object')
         kind = raw.get('kind')
         item_id = raw.get('id')
-        if kind not in ('screensaver', 'launcher'):
+        if kind not in ('screensaver', 'launcher', 'nosignal'):
             fail(f'invalid kind {kind!r}')
         if not isinstance(item_id, str) or not ID_RE.match(item_id):
             fail(f'invalid id {item_id!r}')
@@ -224,6 +260,8 @@ def main() -> None:
                 fail(f'invalid local path {rel_path}')
             if kind == 'screensaver':
                 entry, files = validate_local_saver(pkg_dir, item_id)
+            elif kind == 'nosignal':
+                entry, files = validate_local_nosignal(pkg_dir, item_id)
             else:
                 entry, files = validate_local_launcher(pkg_dir, item_id)
             zip_name = f"{kind}-{item_id}-{entry['version']}.zip"
@@ -273,10 +311,28 @@ def main() -> None:
                 entry['requires'] = raw['requires']
         catalog_items.append(entry)
 
+    revoked_items: list[dict] = []
+    revoked_raw = reg.get('revoked', [])
+    if not isinstance(revoked_raw, list):
+        fail('registry.json revoked must be an array')
+    for rev in revoked_raw:
+        if not isinstance(rev, dict):
+            fail('each revoked entry must be an object')
+        rk = rev.get('kind')
+        rid = rev.get('id')
+        reason = rev.get('reason')
+        if rk not in ('screensaver', 'launcher', 'nosignal') or not isinstance(rid, str) or not ID_RE.match(rid):
+            fail(f'invalid revoked target ({rk!r}, {rid!r})')
+        if not isinstance(reason, str) or not reason.strip():
+            fail(f'revoked entry ({rk}, {rid}) requires a non-empty reason')
+        revoked_items.append({'kind': rk, 'id': rid, 'reason': reason.strip()})
+
     catalog = {
         'catalog': 1,
         'items': catalog_items,
     }
+    if revoked_items:
+        catalog['revoked'] = revoked_items
     (SITE_DIR / 'catalog.json').write_text(
         json.dumps(catalog, ensure_ascii=False, indent=2) + '\n',
         encoding='utf-8',

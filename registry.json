@@ -12,6 +12,11 @@
       "kind": "screensaver",
       "id": "music-highway",
       "path": "packages/screensavers/music-highway"
+    },
+    {
+      "kind": "nosignal",
+      "id": "dvd",
+      "path": "packages/nosignals/dvd"
     }
   ]
 }

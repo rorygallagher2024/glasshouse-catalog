@@ -1,8 +1,8 @@
 # Glasshouse Community Catalog
 
-Community screen savers and custom launchers for [Glasshouse](https://github.com/rorygallagher2024/glasshouse).
+Community screen savers, custom launchers, and No Signal screens for [Glasshouse](https://github.com/rorygallagher2024/glasshouse).
 
-Third-party add-ons in this catalog are created and maintained by their authors, not by Glasshouse. Each listing shows its author, licence, version, and source repository, and every downloadable package is verified by SHA-256 at install time. (Custom No Signal screens will join in a future release.)
+Third-party add-ons in this catalog are created and maintained by their authors, not by Glasshouse. Each listing shows its author, licence, version, and source repository, and every downloadable package is verified by SHA-256 at install time.
 
 ## Submitting your repository
 
@@ -22,6 +22,13 @@ See [Writing a launcher](https://rorygallagher2024.github.io/glasshouse/developm
 
 - Package your web app as a `.zip` (with `index.html` at root or inside one wrapper directory; max 5,000 files, 50 MB download / 100 MB unpacked) or an `.ipk` containing a web app.
 - Pure HTML/JS/CSS only; avoid native services or binaries.
+
+### No Signal screen requirements
+
+See [Writing a No Signal screen](https://rorygallagher2024.github.io/glasshouse/development/WRITING-NOSIGNAL/) for the QML API (`hidesLg`, `headingText`, relative assets) and packaging rules.
+
+- Keep all files at the root of the archive (or inside one top-level folder) with a valid `nosignal.json` (`"manifest": 1`, `"name"`, `"description"`, `"version"`, `"author"`, `"license"`).
+- Use `import QtQuick 2.4` (max 200 files, 5 MB total, no symlinks).
 
 ### Entry format in `registry.json`
 

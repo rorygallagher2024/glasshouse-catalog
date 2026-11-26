@@ -1,0 +1,37 @@
+{
+  "manifest": 1,
+  "version": "1.0.0",
+  "author": "mmmago",
+  "license": "MIT",
+  "main": "main.qml",
+  "name": {
+    "en": "DVD style",
+    "ar": "على طريقة DVD",
+    "de": "DVD-Stil",
+    "es": "Estilo DVD",
+    "fr": "Style DVD",
+    "hu": "DVD-stílus",
+    "it": "Stile DVD",
+    "pl": "Styl DVD",
+    "pt": "Estilo DVD",
+    "pt-br": "Estilo DVD",
+    "ru": "В стиле DVD",
+    "sv": "DVD-stil",
+    "vi": "Kiểu DVD"
+  },
+  "description": {
+    "en": "A “No Signal” logo bounces off the edges of the screen, changing colour at each bounce.",
+    "ar": "شعار «لا توجد إشارة» يرتد عن حواف الشاشة، ويتغير لونه مع كل ارتداد.",
+    "de": "Ein „Kein Signal“-Logo prallt von den Bildschirmrändern ab und wechselt bei jedem Aufprall die Farbe.",
+    "es": "Un logotipo de «Sin señal» rebota en los bordes de la pantalla y cambia de color en cada rebote.",
+    "fr": "Un logo « Aucun signal » rebondit sur les bords de l’écran et change de couleur à chaque rebond.",
+    "hu": "Egy „Nincs jel” logó pattog a képernyő szélein, és minden pattanásnál színt vált.",
+    "it": "Un logo «Nessun segnale» rimbalza sui bordi dello schermo e cambia colore a ogni rimbalzo.",
+    "pl": "Logo „Brak sygnału” odbija się od krawędzi ekranu i przy każdym odbiciu zmienia kolor.",
+    "pt": "Um logótipo «Sem sinal» ressalta nas margens do ecrã e muda de cor a cada ressalto.",
+    "pt-br": "Um logotipo “Sem sinal” quica nas bordas da tela e muda de cor a cada batida.",
+    "ru": "Логотип «Нет сигнала» отскакивает от краёв экрана и меняет цвет при каждом отскоке.",
+    "sv": "En ”Ingen signal”-logga studsar mot skärmens kanter och byter färg vid varje studs.",
+    "vi": "Logo “Không có tín hiệu” nảy khỏi các cạnh màn hình và đổi màu sau mỗi lần nảy."
+  }
+}

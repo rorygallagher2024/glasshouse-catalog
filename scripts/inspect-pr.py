@@ -450,6 +450,41 @@ def validate_screensaver_dir(pkg_dir: Path) -> tuple[list[str], list[str], list[
     return errors, warnings, notes
 
 
+def validate_nosignal_dir(pkg_dir: Path) -> tuple[list[str], list[str], list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    notes: list[str] = []
+
+    manifest_path = pkg_dir / 'nosignal.json'
+    if not manifest_path.is_file():
+        return ['missing nosignal.json'], warnings, notes
+    try:
+        m = json.loads(manifest_path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        return [f'nosignal.json parse error: {exc}'], warnings, notes
+    if not isinstance(m, dict) or m.get('manifest') != 1:
+        errors.append('nosignal.json: manifest must be 1')
+        return errors, warnings, notes
+
+    if not manifest_text(m.get('name')) or not manifest_text(m.get('description')):
+        errors.append('nosignal.json: name and description (en) are required')
+    for req_key in ('version', 'author', 'license'):
+        if not isinstance(m.get(req_key), str) or not m[req_key].strip():
+            errors.append(f'nosignal.json: {req_key} is required')
+
+    main_rel = m.get('main', 'main.qml')
+    if not isinstance(main_rel, str) or not main_rel.endswith('.qml') or '/' in main_rel or '\\' in main_rel or not (pkg_dir / main_rel).is_file():
+        errors.append(f'nosignal.json: missing or invalid main .qml file {main_rel!r}')
+
+    for qml_file in sorted(pkg_dir.rglob('*.qml')):
+        rel = qml_file.relative_to(pkg_dir).as_posix()
+        q_err, q_warn = check_qml_source(qml_file.read_text(encoding='utf-8', errors='replace'), rel)
+        errors.extend(q_err)
+        warnings.extend(q_warn)
+
+    return errors, warnings, notes
+
+
 def validate_launcher_dir(pkg_dir: Path) -> tuple[list[str], list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -523,6 +558,14 @@ def scan_capabilities(pkg_dir: Path, kind: str, file_list: list[tuple[str, int]]
     return errors, warnings, notes
 
 
+def validate_item_dir(pkg_dir: Path, kind: str) -> tuple[list[str], list[str], list[str]]:
+    if kind == 'screensaver':
+        return validate_screensaver_dir(pkg_dir)
+    if kind == 'nosignal':
+        return validate_nosignal_dir(pkg_dir)
+    return validate_launcher_dir(pkg_dir)
+
+
 def inspect_entry(old_raw: dict | None, raw: dict, allow_http_localhost: bool) -> dict:
     kind = str(raw.get('kind', ''))
     item_id = str(raw.get('id', ''))
@@ -537,9 +580,10 @@ def inspect_entry(old_raw: dict | None, raw: dict, allow_http_localhost: bool) -
     sha_status = 'in-repo'
     source_label = ''
 
-    if kind not in ('screensaver', 'launcher') or not ID_RE.match(item_id):
+    if kind not in ('screensaver', 'launcher', 'nosignal') or not ID_RE.match(item_id):
         errors.append(f'invalid kind={kind!r} or id={item_id!r}')
 
+    is_qml_pkg = kind in ('screensaver', 'nosignal')
     if 'path' in raw:
         rel_path = str(raw['path'])
         pkg_dir = (ROOT / rel_path).resolve()
@@ -547,8 +591,8 @@ def inspect_entry(old_raw: dict | None, raw: dict, allow_http_localhost: bool) -
         if not str(pkg_dir).startswith(str(ROOT.resolve()) + os.sep) or not pkg_dir.is_dir():
             errors.append(f'invalid local path {rel_path}')
         else:
-            max_files = MAX_SAVER_FILES if kind == 'screensaver' else MAX_LAUNCHER_FILES
-            max_bytes = MAX_SAVER_BYTES if kind == 'screensaver' else MAX_LAUNCHER_UNPACKED
+            max_files = MAX_SAVER_FILES if is_qml_pkg else MAX_LAUNCHER_FILES
+            max_bytes = MAX_SAVER_BYTES if is_qml_pkg else MAX_LAUNCHER_UNPACKED
             for p in sorted(pkg_dir.rglob('*')):
                 if p.is_symlink():
                     errors.append(f'symlink not allowed: {p.relative_to(pkg_dir).as_posix()}')
@@ -561,14 +605,15 @@ def inspect_entry(old_raw: dict | None, raw: dict, allow_http_localhost: bool) -
             if len(file_list) > max_files or total_bytes > max_bytes:
                 errors.append(f'exceeds package limits ({len(file_list)} files, {total_bytes} bytes)')
             if not errors:
-                v_err, v_warn, v_notes = validate_screensaver_dir(pkg_dir) if kind == 'screensaver' else validate_launcher_dir(pkg_dir)
+                v_err, v_warn, v_notes = validate_item_dir(pkg_dir, kind)
                 s_err, s_warn, s_notes = scan_capabilities(pkg_dir, kind, file_list)
                 errors.extend(v_err + s_err)
                 warnings.extend(v_warn + s_warn)
                 notes.extend(v_notes + s_notes)
-                if kind == 'screensaver':
+                if is_qml_pkg:
+                    mfile = 'saver.json' if kind == 'screensaver' else 'nosignal.json'
                     try:
-                        m = json.loads((pkg_dir / 'saver.json').read_text(encoding='utf-8'))
+                        m = json.loads((pkg_dir / mfile).read_text(encoding='utf-8'))
                         version = version or str(m.get('version', '')).strip()
                     except Exception:
                         pass
@@ -594,9 +639,9 @@ def inspect_entry(old_raw: dict | None, raw: dict, allow_http_localhost: bool) -
             errors.append(f'sourceUrl/repo must be https://: {src_url}')
 
         if not errors:
-            max_dl = MAX_SAVER_BYTES if kind == 'screensaver' else MAX_LAUNCHER_DOWNLOAD
-            max_files = MAX_SAVER_FILES if kind == 'screensaver' else MAX_LAUNCHER_FILES
-            max_unpacked = MAX_SAVER_BYTES if kind == 'screensaver' else MAX_LAUNCHER_UNPACKED
+            max_dl = MAX_SAVER_BYTES if is_qml_pkg else MAX_LAUNCHER_DOWNLOAD
+            max_files = MAX_SAVER_FILES if is_qml_pkg else MAX_LAUNCHER_FILES
+            max_unpacked = MAX_SAVER_BYTES if is_qml_pkg else MAX_LAUNCHER_UNPACKED
             tmp_root = Path(tempfile.mkdtemp(prefix='gh-cat-inspect-'))
             try:
                 ext = '.ipk' if (kind == 'launcher' and dl.lower().split('?')[0].endswith('.ipk')) else '.zip'
@@ -609,12 +654,12 @@ def inspect_entry(old_raw: dict | None, raw: dict, allow_http_localhost: bool) -
                     sha_status = f'verified ({dl_bytes} B)'
                     unpack_dir = tmp_root / 'unpacked'
                     unpack_dir.mkdir()
-                    markers = ('saver.json',) if kind == 'screensaver' else ('index.html', 'appinfo.json')
+                    markers = ('saver.json',) if kind == 'screensaver' else (('nosignal.json',) if kind == 'nosignal' else ('index.html', 'appinfo.json'))
                     if ext == '.ipk':
                         file_list = unpack_ipk(archive_path, unpack_dir, max_files, max_unpacked)
                     else:
                         file_list = unpack_zip(archive_path, unpack_dir, max_files, max_unpacked, markers)
-                    v_err, v_warn, v_notes = validate_screensaver_dir(unpack_dir) if kind == 'screensaver' else validate_launcher_dir(unpack_dir)
+                    v_err, v_warn, v_notes = validate_item_dir(unpack_dir, kind)
                     s_err, s_warn, s_notes = scan_capabilities(unpack_dir, kind, file_list)
                     errors.extend(v_err + s_err)
                     warnings.extend(v_warn + s_warn)
