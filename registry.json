@@ -17,6 +17,11 @@
       "kind": "nosignal",
       "id": "dvd",
       "path": "packages/nosignals/dvd"
+    },
+    {
+      "kind": "launcher",
+      "id": "example",
+      "path": "packages/launchers/example"
     }
   ]
 }

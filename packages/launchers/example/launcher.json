@@ -1,0 +1,13 @@
+{
+  "manifest": 1,
+  "version": "1.0.0",
+  "author": "Glasshouse",
+  "license": "MIT",
+  "main": "index.html",
+  "name": {
+    "en": "Example launcher"
+  },
+  "description": {
+    "en": "A simple home screen to start your own from: the TV's apps and inputs as tiles, and a clock. Move with the arrow keys and open with OK. Its source is one short HTML file."
+  }
+}
