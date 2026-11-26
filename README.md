@@ -44,4 +44,4 @@ Compute the SHA-256 checksum of your release archive (`shasum -a 256 <archive>` 
 }
 ```
 
-Open a pull request against `main`. CI checks the schema, URLs, and checksum before merge, and rebuilds `catalog.json` automatically on GitHub Pages after merge.
+Open a pull request against `main`. CI validates the schema, verifies the SHA-256 checksum, inspects the archive contents and capabilities, and posts a review summary on the pull request before merge. After merge, `catalog.json` rebuilds automatically on GitHub Pages.

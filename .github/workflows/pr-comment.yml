@@ -1,0 +1,71 @@
+name: Post PR inspection comment
+
+on:
+  workflow_run:
+    workflows: ["Validate and publish catalog"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download audit artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          ART_ID=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "pr-audit-report") | .id' | head -n1)
+          if [ -z "$ART_ID" ]; then
+            echo "No pr-audit-report artifact found"
+            exit 0
+          fi
+          gh api "repos/${{ github.repository }}/actions/artifacts/${ART_ID}/zip" > report.zip
+          python3 - <<'PY'
+          import re, zipfile
+          with zipfile.ZipFile('report.zip') as zf:
+            names = set(zf.namelist())
+            if 'pr-number.txt' in names and 'pr-report.md' in names:
+              num = zf.read('pr-number.txt').decode('utf-8').strip()
+              if not re.fullmatch(r'\d+', num):
+                raise ValueError('invalid PR number')
+              md = zf.read('pr-report.md').decode('utf-8', errors='replace')[:60000]
+              open('pr-number.txt', 'w').write(num)
+              open('pr-report.md', 'w').write(md)
+          PY
+
+      - name: Upsert PR review comment
+        if: hashFiles('pr-report.md') != '' && hashFiles('pr-number.txt') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const prNumber = Number(fs.readFileSync('pr-number.txt', 'utf8').trim());
+            const body = fs.readFileSync('pr-report.md', 'utf8');
+            const marker = '<!-- glasshouse-catalog-audit -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body
+              });
+            }

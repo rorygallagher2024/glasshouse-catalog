@@ -25,6 +25,27 @@ jobs:
           python-version: '3.12'
       - name: Build and validate catalog
         run: python3 scripts/build-catalog.py
+      - name: Fetch base ref for PR inspection
+        if: github.event_name == 'pull_request'
+        run: git fetch origin "${{ github.base_ref }}" --depth=1
+      - name: Inspect added or updated packages
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/inspect-pr.py --base-ref "origin/${{ github.base_ref }}" --out-md pr-report.md
+      - name: Append inspection report to job summary
+        if: github.event_name == 'pull_request' && always() && hashFiles('pr-report.md') != ''
+        run: cat pr-report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Save PR number and upload audit report
+        if: github.event_name == 'pull_request' && always() && hashFiles('pr-report.md') != ''
+        run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
+      - name: Upload audit artifact
+        if: github.event_name == 'pull_request' && always() && hashFiles('pr-report.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-audit-report
+          path: |
+            pr-report.md
+            pr-number.txt
+          retention-days: 7
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
